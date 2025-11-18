@@ -1,0 +1,350 @@
+
+ 
+0. Contexto do Sistema
+•	Sistema: LIMS Enterprise 4.0 – QA/QC + HACCP + ISO 9001/22000/FSSC
+•	Público-alvo: indústrias de bebidas e alimentos (Pepsi, Coca-Cola, Compal, etc.)
+•	Objetivo do front-end: 
+o	Interface web responsiva, rápida e estável.
+o	Experiência “auditor friendly” (fácil mostrar evidências em auditoria).
+o	Suportar muitos módulos sem virar caos visual.
+o	Implementar drill-down profundo em dashboards e dados.
+ 
+1. Requisitos Gerais de Front-end
+1.1. Stack recomendada (pode ajustar depois)
+•	Framework: React + Next.js 14 (App Router).
+•	Estilo: Tailwind CSS.
+•	Charts: Chart.js ou Recharts (componentizados).
+•	Estado Global: Zustand / Redux / React Query (para cache de API).
+•	Component Library (opcional): shadcn/ui ou similar.
+1.2. Requisitos de UX/UI
+•	Layout tipo “application shell”: 
+o	Sidebar fixa com navegação principal.
+o	Topbar com: 
+	Planta selecionada.
+	Nome do utilizador.
+	Botão de notificações.
+	Modo claro/escuro (opcional, mas previsto).
+•	Suporte a: 
+o	Dark/Light mode.
+o	Layout responsivo (desktop como foco, mobile funcional).
+o	Design limpo e corporativo (poucas cores fortes, foco em legibilidade).
+1.3. Requisitos de Performance
+•	Carregamento inicial ≤ 2–3 s em rede normal.
+•	Tabelas com paginação, server-side filtering quando dataset for grande.
+•	Lazy load de gráficos pesados e módulos secundários.
+1.4. Acessibilidade
+•	Navegação por teclado (tab, enter, esc).
+•	Aria-labels em botões críticos (salvar, aprovar, reprovar).
+•	Alt text para ícones importantes.
+1.5. Segurança visual (do ponto de vista de UI)
+•	Botões destrutivos sempre: 
+o	Cor de alerta (vermelho/âmbar).
+o	Confirmação em modal.
+•	Campos de dados críticos (resultado, aprovação) aparecem com: 
+o	Estados claros (editável x somente leitura).
+o	Indicação de quem editou/validou (exibir “validado por…”).
+ 
+2. Estrutura de Navegação (Módulos/Páginas)
+Menu lateral principal (sidebar):
+1.	Dashboard Geral
+2.	Laboratório & Amostras 
+o	Lista de Amostras
+o	Resultados / Análises
+3.	NC & CAPA
+4.	HACCP & Segurança Alimentar
+5.	Equipamentos & Calibração
+6.	Documentos & ISO
+7.	Auditorias & Inspeções
+8.	Analytics & Drill-Down
+9.	Administração 
+o	Produtos & Especificações
+o	Parâmetros & Métodos
+o	Utilizadores & Permissões
+o	Configurações do Sistema
+Cada módulo abaixo descreve o que o front-end precisa exibir.
+ 
+3. Páginas Detalhadas
+3.1. Dashboard Geral
+Objetivo: visão de alto nível do status de qualidade e risco.
+Elementos obrigatórios:
+•	Cards KPI (componentização):
+o	% de conformidade geral (últimas 24h / últimos 7 dias).
+o	Nº de lotes liberados / bloqueados.
+o	Nº de desvios críticos abertos.
+o	TAT médio (Turnaround Time) por tipo de amostra.
+•	Gráfico de tendência:
+o	Linha do tempo de um parâmetro crítico (Brix/pH/CO2) por lote ou por dia.
+o	Interação: 
+	Hover: mostra valor exato, lote, linha, turno.
+	Clique: abre drill-down (modal ou rota de detalhe).
+•	Gráfico de distribuição (desvios):
+o	Donut/barra com: críticos / maiores / menores / resolvidos.
+o	Clique em categoria → abre lista filtrada de NC.
+•	Heatmap Linha x Turno:
+o	Eixo X: turnos (Manhã/Tarde/Noite).
+o	Eixo Y: linhas (L1, L2, L3…).
+o	Célula com % conformidade e cor de risco (verde/amarelo/vermelho).
+o	Clique numa célula → drill-down para lista de amostras/NC daquele cruzamento.
+•	Lista rápida:
+o	“Amostras pendentes prioritárias” (top 5).
+o	“Equipamentos com calibração vencida / próximo de vencer”.
+Estados que o front deve suportar:
+•	Loading (skeletons para cards e gráficos).
+•	Empty data (mensagem amigável).
+•	Erro (caixa com opção “Tentar novamente”).
+ 
+3.2. Laboratório & Amostras
+3.2.1. Lista de Amostras
+Elementos:
+•	Tabela com colunas:
+o	ID Amostra
+o	Tipo (MP, PF, Água, Micro, etc.)
+o	Produto/SKU
+o	Linha
+o	Status (planeada/coletada/em análise/em revisão/aprovada/bloqueada)
+o	Data/hora de coleta
+o	SLA (tempo restante / ultrapassado)
+•	Filtros:
+o	Data inicial/final
+o	Linha
+o	Produto
+o	Tipo de amostra
+o	Status
+o	Prioridade
+•	Ações na linha:
+o	Ver detalhes (navega para página de detalhes da amostra).
+o	Criar análise (se em estado adequado).
+o	Ver histórico (abre painel lateral ou modal com log).
+•	Paginação:
+o	Server-side (tamanho configurável: 10/25/50).
+3.2.2. Detalhe da Amostra
+Seções:
+1.	Header da amostra:
+o	ID, produto, linha, tipo, data/hora, estado, quem coletou.
+o	Badges de risco (se associada a PCC/NC).
+2.	Timeline / histórico:
+o	Eventos: coletada → recebida no lab → analisada → revisada → aprovada/bloqueada.
+o	Cada evento mostra utilizador + timestamp.
+3.	Resultados associados:
+o	Lista de análises (por parâmetro ou painel de parâmetros).
+o	Cada linha com: 
+	Parâmetro
+	Resultado
+	Unidade
+	Especificação (min / target / max)
+	Estado (Dentro / Fora / Em revisão)
+	Ação (ver detalhe, anexos, etc.)
+4.	Ações:
+o	Botão “Adicionar resultado” (se permitido pelo estado/permissão).
+o	Botão “Enviar para revisão” / “Aprovar lote” / “Bloquear lote” (controlado por role/permissão).
+ 
+3.3. Resultados / Análises
+Página mais focada em resultados do que em amostras.
+•	Tabela principal:
+o	ID Análise
+o	Parâmetro
+o	Resultado
+o	Unidade
+o	Especificação
+o	Resultado normalizado (OK/Desvio)
+o	Amostra / Lote
+o	Linha
+o	Data/hora
+o	Analista
+o	Estado (Registrado / Validado / Reprovado)
+•	Filtros avançados:
+o	Parâmetro
+o	Faixa de resultados (min-max)
+o	Tipo de desvio (acima/abaixo)
+o	Analista
+o	PCC/OPRP relacionado (sim/não)
+ 
+3.4. Módulo NC & CAPA
+Lista de NC
+•	Colunas:
+o	Código da NC
+o	Tipo (Crítica/Maior/Menor)
+o	Origem (Lab, Produção, Reclamação, Auditoria)
+o	Produto/Linha
+o	Status (Aberta, Em ação, Encerrada, Em verificação de eficácia)
+o	Responsável
+o	Prazo
+•	Interações:
+o	Clique na linha → página de detalhe da NC.
+o	Filtros por status, tipo, origem, responsável.
+Detalhe da NC
+Seções front-end:
+1.	Resumo (header da NC)
+2.	Descrição do problema (texto longo, anexos)
+3.	Causas (5 Porquês / Ishikawa – grid ou lista).
+4.	Plano de ações (CAPA): 
+o	Tabela com ações, responsável, prazo, status.
+5.	Ligação com: 
+o	Amostras
+o	Análises
+o	Lotes
+6.	Linha do tempo: 
+o	Abertura → ações → evidências → encerramento.
+ 
+3.5. HACCP & Segurança Alimentar
+3.5.1. Mapa HACCP
+Front-end precisa mostrar:
+•	Lista de PCC / OPRP: 
+o	Etapa do processo
+o	Perigo
+o	Limites críticos
+o	Plano de monitorização.
+•	Status atual (OK, alerta, desvio).
+•	Quando o utilizador clica num PCC: 
+o	Abre detalhes: 
+	Últimos registros.
+	Desvios recentes.
+	Ações tomadas.
+3.5.2. Registos de PCC
+•	Tabela: 
+o	Data/hora
+o	PCC
+o	Valor medido
+o	Resultado (OK/Fora limite)
+o	Operador
+o	Ação imediata.
+ 
+3.6. Equipamentos & Calibração
+Lista de equipamentos
+•	Colunas: 
+o	ID / Nome
+o	Tipo
+o	Localização
+o	Próxima calibração
+o	Status (OK, Perto do vencimento, Vencido)
+•	Filtro por status (muito importante em front).
+Detalhe do equipamento
+•	Dados principais
+•	Histórico de calibrações (tabela)
+•	Upload de certificados (lista de documentos)
+•	Flag visual clara quando equipamento estiver vencido.
+ 
+3.7. Documentos & ISO
+•	Biblioteca de documentos: 
+o	Lista com: 
+	Código
+	Título
+	Versão
+	Status (Vigente, Obsoleto)
+	Área (Qualidade, HACCP, Lab, Produção)
+•	Ações: 
+o	Ver documento (PDF embed ou link).
+o	Ver histórico de versões (popup ou página).
+ 
+3.8. Auditorias & Inspeções
+•	Lista: 
+o	Tipo (Interna, Externa, Cliente, Certificação).
+o	Norma (ISO 9001, ISO 22000, FSSC, HACCP, Coca-Cola KORE).
+o	Data
+o	Status (Planeada, Em execução, Concluída).
+•	Detalhe: 
+o	Lista de itens auditados.
+o	Evidências (link para amostras, resultados, documentos).
+o	Não conformidades geradas.
+ 
+3.9. Analytics & Drill-Down
+Página dedicada a análise de dados.
+Componentes essenciais:
+1.	Filtros globais:
+o	Período
+o	Planta / Linha
+o	Produto
+o	Tipo de parâmetro (Micro, FQ, PCC, etc.)
+2.	Seções de gráficos:
+o	Tendência por parâmetro (linha).
+o	Histograma (distribuição).
+o	Pareto de falhas.
+o	SPC (em versão futura, mas front-end deve prever container).
+3.	Drill-down:
+o	Clique num ponto / barra → abrir: 
+	Modal de detalhe (amostras/NCs ligadas).
+	Ou redirecionar para lista já filtrada (ex.: “ver amostras com desvio em Brix na Linha 3, turno Noite”).
+Front-end precisa ter um componente genérico de modal de drill-down, reutilizável.
+ 
+3.10. Administração
+Produtos & Especificações
+•	Form de criação/edição de: 
+o	Produto (SKU, descrição, categoria).
+o	Especificações por parâmetro: 
+	min, target, max.
+	unidade.
+	criticidade (crítico, maior, menor).
+•	Lista editável (tabela com inline edit opcional).
+Parâmetros & Métodos
+•	Lista: 
+o	Nome do parâmetro
+o	Tipo (Micro/FQ/Outro)
+o	Método
+o	Unidade
+o	Limites globais (defaults)
+•	CRUD com formulários de validação clara.
+Utilizadores & Permissões
+•	Lista de utilizadores: 
+o	Nome, email, role, estado.
+•	Assign de roles: 
+o	Admin, QA Supervisor, Lab Tech, Auditor ReadOnly etc.
+•	Front-end deve: 
+o	Esconder elementos que o user não pode usar.
+o	Desabilitar ações quando o backend indicar falta de permissão.
+ 
+4. Componentes Reutilizáveis (Biblioteca UI)
+Front-end deve criar estes componentes como blocos reutilizáveis:
+1.	PageShell
+o	Recebe: título, descrição, breadcrumb, ações.
+o	Usa sempre o mesmo layout para consistência.
+2.	CardKPI
+o	Props: title, value, subtitle, trend(optional), statusColor.
+3.	DataTable
+o	Props: 
+	columns (label, field, render, sortable).
+	data.
+	pagination props.
+	loading/empty state.
+4.	FilterBar
+o	Props: conjunto de filtros (tipo data range, select, multi-select, text).
+5.	Modal
+o	Props: title, children, onConfirm, onCancel, size.
+6.	FormLayout
+o	Layout padrão para forms: 
+	grid 2 colunas desktop, 1 coluna mobile.
+	Labels consistentes.
+	Mensagens de erro abaixo do campo.
+7.	Toast/Alert
+o	Para feedback rápido: sucesso, erro, aviso.
+8.	ChartsWrapper
+o	Componente que engloba: 
+	Título.
+	Select de período.
+	Botão “expandir” (full-screen).
+	Container para gráfico (Chart.js ou Recharts recebe props).
+ 
+5. Padrões de Estado e Erros
+Front-end deve padronizar:
+•	Loading: 
+o	Sempre usar skeletons ou spinners no lugar certo.
+•	Empty: 
+o	Mensagem custom: “Nenhum registo encontrado para os filtros selecionados”.
+•	Erro: 
+o	Mensagem clara (“Falha ao carregar dados de [módulo]”).
+o	Botão “Tentar novamente”.
+•	Form errors: 
+o	Campos em vermelho.
+o	Mensagem curta e direta embaixo.
+ 
+6. Considerações Especiais de Front-end para Auditoria
+•	Mostrar sempre: 
+o	“Última atualização” no topo da página.
+o	“Última modificação por [user] em [data]” em telas de detalhe sensíveis.
+•	Possibilidade de: 
+o	Botão “Imprimir visual” (ex.: gerar versão clean sem sidebar, própria para entregar a auditor).
+ 
+Se quiser, no próximo passo eu posso transformar essa URS de front-end em:
+•	User stories prontas para Jira/Trello, ou
+•	Especificação de componentes em React/TypeScript (interfaces, props, pastas, etc.).
+
+
