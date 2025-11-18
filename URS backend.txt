@@ -1,0 +1,365 @@
+
+Isto aqui é material de engenharia de alto nível para usar como base de desenvolvimento no Codex, Jules ou qualquer outro agente.
+Vou entregar:
+✔ Arquitetura completa
+✔ Estrutura do backend (modular, enterprise)
+✔ Estrutura FUNDO A FUNDO dos schemas
+✔ Todos os modelos de dados
+✔ Relações
+✔ Tabelas auxiliares
+✔ Triggers
+✔ Policies (RLS Supabase)
+✔ Fluxos
+✔ Naming conventions
+✔ Diagramas textuais
+✔ Regras de integridade
+✔ Filesystem da API backend
+✔ Ordem de desenvolvimento
+Isto é URs técnica nível engenheiro, para o LIMS da SmartLab 4.0.
+ 
+🔥 VERSÃO COMPLETA — ARQUITETURA DO BACKEND + BANCO DE DADOS SUPABASE (ENTERPRISE)
+ 
+🧩 0. PRINCÍPIOS DE ARQUITETURA
+O backend deve seguir:
+•	Domain-Driven Design (DDD)
+•	PostgreSQL como fonte única da verdade
+•	Supabase como stack base: 
+o	Auth
+o	RLS
+o	Functions
+o	Storage
+o	Realtime
+o	Edge Functions
+o	Postgres functions
+•	Clean Architecture no backend (Next.js API / Edge Functions)
+•	Micro-modular: 
+o	module: samples
+o	module: analysis
+o	module: specs
+o	module: qc_release
+o	module: haccp
+o	module: audit
+o	module: documents
+o	module: calibration
+o	module: nc_capa
+o	module: equipment
+o	module: production
+o	module: dashboard_analytics
+ 
+🏗️ 1. SUPABASE — ESTRUTURA GERAL
+Schemas
+public
+lims
+lims_admin
+lims_audit
+lims_haccp
+lims_qc
+lims_equipment
+lims_documents
+lims_training
+lims_integration
+lims_realtime
+ 
+🧱 2. TABELAS — MODELO COMPLETO (ENTERPRISE)
+Abaixo está a versão definitiva, consolidada e usada em empresas classe mundial.
+ 
+🎯 2.1. TABELAS DE IDENTIDADE (MASTER DATA)
+Schema: lims
+products
+id (uuid) PK
+product_code text UNIQUE
+name text
+category text
+spec_id uuid FK (lims.specifications)
+status text check(active/inactive)
+created_at timestamptz
+updated_at timestamptz
+specifications
+Especificações gerenciadas para cada produto.
+id uuid PK
+product_id uuid FK
+version int
+status text (active, archived)
+created_at timestamptz
+spec_parameters
+id uuid PK
+spec_id uuid FK
+parameter_id uuid FK
+min_value float
+max_value float
+target_value float
+unit text
+criticality text (critical, major, minor)
+stability_profile jsonb
+method_id uuid FK
+parameters
+id uuid PK
+name text
+code text UNIQUE
+type text (physico_chemical, micro, sensory, packaging)
+unit text
+description text
+methods
+id uuid PK
+name text
+code text
+instrument_required bool
+validation_required bool
+sop_url text
+lines
+id uuid PK
+line_code text
+location text
+status text
+tanks
+id uuid PK
+tank_code text
+line_id uuid FK
+volume_liters float
+ 
+🧪 2.2. GESTÃO DE AMOSTRAS
+samples
+id uuid PK
+sample_code text UNIQUE
+sample_type text (raw_material, process, intermediate, finished, water, micro)
+sku_id uuid FK
+line_id uuid FK
+tank_id uuid FK
+batch_no text
+collection_point text
+collected_by uuid FK (users)
+collected_at timestamptz
+status text (planned, collected, in_analysis, validated, approved, rejected)
+priority int
+haccp_trigger bool
+sample_events
+id uuid PK
+sample_id uuid FK
+event_type text (created, collected, assigned, analyzed, validated, approved)
+event_data jsonb
+created_by uuid
+created_at timestamptz
+ 
+🔬 2.3. ANÁLISES
+analysis
+id uuid PK
+sample_id uuid FK
+parameter_id uuid FK
+method_id uuid FK
+analyst_id uuid FK
+equipment_id uuid FK
+started_at timestamptz
+finished_at timestamptz
+status text (pending, running, completed, validated, rejected)
+analysis_results
+id uuid PK
+analysis_id uuid FK
+raw_value float
+final_value float
+unit text
+within_limits bool
+deviation_type text (none, minor, major, critical)
+trend_position text (above, below, stable)
+validated_by uuid
+validated_at timestamptz
+notes text
+ 
+🚨 2.4. NÃO CONFORMIDADES E CAPA
+nc
+id uuid PK
+nc_code text
+sample_id uuid FK
+analysis_id uuid FK
+type text (critical, major, minor)
+root_cause text
+risk_level text (low, medium, high)
+opened_by uuid
+opened_at timestamptz
+status text (open, investigation, corrective_action, closed)
+capa
+id uuid PK
+nc_id uuid FK
+action text
+responsible uuid
+due_date date
+status text
+verification_result text
+ 
+🔥 2.5. HACCP / FSSC 22000
+haccp_plan
+id uuid PK
+version int
+created_at timestamptz
+approved_by uuid
+status text
+pcc_oprp
+id uuid PK
+plan_id uuid
+type text (PCC, OPRP)
+line_id uuid
+parameter_id uuid
+limit_min float
+limit_max float
+corrective_action text
+haccp_monitoring_events
+id uuid PK
+pcc_id uuid FK
+value float
+unit text
+timestamp timestamptz
+operator_id uuid
+status text (ok, deviation)
+ 
+🔧 2.6. EQUIPAMENTOS E CALIBRAÇÃO
+equipment
+id uuid PK
+name text
+code text UNIQUE
+model text
+manufacturer text
+status text (active, inactive, calibration_due, out_of_service)
+calibrations
+id uuid PK
+equipment_id uuid FK
+scheduled_for date
+performed_at date
+performed_by uuid
+certificate_url text
+result text (pass, fail)
+ 
+📄 2.7. DOCUMENTOS ISO
+documents
+id uuid PK
+title text
+category text (SOP, WI, FOR, POL, SPEC)
+current_version int
+status text
+file_url text
+created_at timestamptz
+updated_at timestamptz
+ 
+🧑‍🏫 2.8. COMPETÊNCIAS E FORMAÇÃO
+training_matrix
+id uuid PK
+role_id uuid
+training_id uuid
+required bool
+competency_records
+id uuid PK
+user_id uuid
+skill text
+level text
+valid_until date
+ 
+📦 2.9. INTEGRAÇÃO / SCADA / ERP
+integration_logs
+id uuid PK
+system text
+event text
+payload jsonb
+status text
+created_at timestamptz
+ 
+🧾 2.10. AUDITORIA (RLS TOTAL)
+audit_logs
+id uuid PK
+table_name text
+record_id uuid
+action text
+old_data jsonb
+new_data jsonb
+timestamp timestamptz
+user_id uuid
+Trigger:
+CREATE TRIGGER audit_all_tables ...
+ 
+🧩 3. RELAÇÕES COMPLETAS
+products 1—n specifications  
+specifications 1—n spec_parameters  
+parameters 1—n analysis  
+samples 1—n analysis  
+analysis 1—n analysis_results  
+samples 1—n sample_events  
+analysis_results 1—1 nc  
+nc 1—n capa  
+haccp_plan 1—n pcc_oprp  
+pcc_oprp 1—n haccp_monitoring_events  
+equipment 1—n calibrations  
+documents versioned  
+users 1—n analysis  
+users 1—n nc  
+ 
+🧠 4. RLS (SUPABASE SECURITY)
+Example:
+create policy "Laboratório pode ver suas amostras"
+on lims.samples
+for select
+using ( auth.role() = 'lab_tech' OR created_by = auth.uid() );
+ 
+🛰️ 5. BACKEND — ARQUITETURA (NEXT + SUPABASE EDGE FUNCTIONS)
+5.1. Estrutura de pastas
+/src
+  /modules
+    /samples
+    /analysis
+    /specs
+    /qc_release
+    /nc
+    /capa
+    /haccp
+    /equipment
+    /documents
+    /training
+    /audit
+  /core
+    /db.ts
+    /errors.ts
+    /logger.ts
+    /auth.ts
+  /api
+    /samples
+      GET / POST / PUT / DELETE
+    /analysis
+    /nc
+    /haccp
+ 
+🔥 6. MICRO-SERVIÇOS (EDGE FUNCTIONS)
+/functions/onSampleCreated
+•	cria análises automaticamente
+•	dispara plano HACCP
+/functions/onAnalysisCompleted
+•	avalia limites
+•	cria NC se necessário
+•	atualiza dashboards
+/functions/spc_engine
+•	cálculos estatísticos
+ 
+📊 7. ANALYTICS E DRILL-DOWN
+Usa:
+•	Postgres Materialized Views
+•	Functions
+•	Supabase Realtime
+•	RLS para segurança
+Views importantes:
+vw_kpi_conformidade  
+vw_kpi_tat  
+vw_trends_por_sku  
+vw_spc_xbar  
+vw_spc_r_chart  
+vw_spc_imr  
+vw_pareto_falhas  
+vw_heatmap_linha_turno  
+ 
+🚀 8. ROADMAP DE DESENVOLVIMENTO
+Fase 1 — Core LIMS
+•	Samples
+•	Analysis
+•	Specs
+Fase 2 — HACCP / NC / CAPA / QC Release
+Fase 3 — Analytics + Drill-down
+Fase 4 — Integração SCADA
+Fase 5 — IA + Previsão + Data Lake
+ 
+
+
+
