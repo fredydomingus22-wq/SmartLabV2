@@ -25,7 +25,14 @@ export default function SpecsPage() {
   }, []);
 
   const columns = [
-    { label: 'Produto', field: 'product_id' }, // idealmente, o nome do produto
+    {
+      label: 'Produto',
+      field: 'products',
+      render: (row: any) =>
+        `${row.products?.name || 'N/A'} (${
+          row.products?.product_code || row.product_id
+        })`,
+    },
     { label: 'Versão', field: 'version' },
     { label: 'Status', field: 'status' },
     { label: 'Criado em', field: 'created_at' },

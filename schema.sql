@@ -276,4 +276,85 @@ CALL lims_audit.create_audit_trigger('samples');
 CALL lims_audit.create_audit_trigger('analysis');
 CALL lims_audit.create_audit_trigger('analysis_results');
 
+-- 6. TABELAS DE NÃO CONFORMIDADES (NC) E CAPA
+-- Tabela de Não Conformidades
+CREATE TABLE IF NOT EXISTS lims.nc (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nc_code TEXT UNIQUE NOT NULL,
+    sample_id UUID REFERENCES lims.samples(id),
+    analysis_id UUID REFERENCES lims.analysis(id),
+    type TEXT CHECK (type IN ('critical', 'major', 'minor')),
+    root_cause TEXT,
+    risk_level TEXT CHECK (risk_level IN ('low', 'medium', 'high')),
+    status TEXT DEFAULT 'open' CHECK (status IN ('open', 'investigation', 'corrective_action', 'closed')),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    created_by UUID REFERENCES auth.users(id),
+    updated_by UUID REFERENCES auth.users(id)
+);
+
+-- Tabela de Ações Corretivas/Preventivas (CAPA)
+CREATE TABLE IF NOT EXISTS lims.capa (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nc_id UUID REFERENCES lims.nc(id) ON DELETE CASCADE,
+    action TEXT NOT NULL,
+    responsible UUID REFERENCES auth.users(id),
+    due_date DATE,
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'verified')),
+    verification_result TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    created_by UUID REFERENCES auth.users(id),
+    updated_by UUID REFERENCES auth.users(id)
+);
+
+-- 7. TABELAS DE HACCP / FSSC 22000
+-- Tabela de Plano HACCP
+CREATE TABLE IF NOT EXISTS lims.haccp_plan (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    version INT NOT NULL,
+    status TEXT DEFAULT 'active' CHECK (status IN ('active', 'archived', 'draft')),
+    approved_by UUID REFERENCES auth.users(id),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    created_by UUID REFERENCES auth.users(id),
+    updated_by UUID REFERENCES auth.users(id)
+);
+
+-- Tabela de PCCs e OPRPs
+CREATE TABLE IF NOT EXISTS lims.pcc_oprp (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    plan_id UUID REFERENCES lims.haccp_plan(id) ON DELETE CASCADE,
+    type TEXT NOT NULL CHECK (type IN ('PCC', 'OPRP')),
+    line_id UUID REFERENCES lims.lines(id),
+    parameter_id UUID REFERENCES lims.parameters(id),
+    limit_min NUMERIC,
+    limit_max NUMERIC,
+    corrective_action TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    created_by UUID REFERENCES auth.users(id),
+    updated_by UUID REFERENCES auth.users(id)
+);
+
+-- Tabela de Eventos de Monitorização HACCP
+CREATE TABLE IF NOT EXISTS lims.haccp_monitoring_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    pcc_id UUID REFERENCES lims.pcc_oprp(id) ON DELETE CASCADE,
+    value NUMERIC NOT NULL,
+    unit TEXT,
+    timestamp TIMESTAMPTZ NOT NULL,
+    operator_id UUID REFERENCES auth.users(id),
+    status TEXT CHECK (status IN ('ok', 'deviation')),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    created_by UUID REFERENCES auth.users(id)
+);
+
+-- 8. APLICAÇÃO ADICIONAL DE TRIGGERS DE AUDITORIA
+CALL lims_audit.create_audit_trigger('nc');
+CALL lims_audit.create_audit_trigger('capa');
+CALL lims_audit.create_audit_trigger('haccp_plan');
+CALL lims_audit.create_audit_trigger('pcc_oprp');
+CALL lims_audit.create_audit_trigger('haccp_monitoring_events');
+
 -- Fim do script

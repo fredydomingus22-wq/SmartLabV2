@@ -15,7 +15,15 @@ const Sidebar: React.FC = () => {
         <Link href="/lab" className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200 dark:text-gray-200 dark:hover:bg-gray-700 rounded-md">
             Laboratório & Amostras
         </Link>
-        {/* Adicionar outros links de navegação aqui */}
+        <Link href="/nc" className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200 dark:text-gray-200 dark:hover:bg-gray-700 rounded-md">
+            NC & CAPA
+        </Link>
+        <Link href="/haccp" className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200 dark:text-gray-200 dark:hover:bg-gray-700 rounded-md">
+            HACCP
+        </Link>
+        <Link href="/specs" className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200 dark:text-gray-200 dark:hover:bg-gray-700 rounded-md">
+            Especificações
+        </Link>
       </nav>
     </div>
   );

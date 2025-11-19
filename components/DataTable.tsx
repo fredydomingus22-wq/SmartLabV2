@@ -5,6 +5,7 @@ interface DataTableProps {
   columns: {
     label: string;
     field: string;
+    render?: (row: any) => React.ReactNode;
   }[];
   data: any[];
   loading?: boolean;
@@ -45,7 +46,7 @@ const DataTable: React.FC<DataTableProps> = ({
             <tr key={rowIndex}>
               {columns.map((col) => (
                 <td key={col.field} className="px-6 py-4 whitespace-nowrap">
-                  {row[col.field]}
+                  {col.render ? col.render(row) : row[col.field]}
                 </td>
               ))}
             </tr>

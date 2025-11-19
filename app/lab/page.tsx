@@ -59,8 +59,16 @@ export default function LabPage() {
   const columns = [
     { label: 'ID Amostra', field: 'sample_code' },
     { label: 'Tipo', field: 'sample_type' },
-    { label: 'Produto', field: 'product_id' },
-    { label: 'Linha', field: 'line_id' },
+    {
+      label: 'Produto',
+      field: 'products',
+      render: (row: any) => row.products?.name || row.product_id,
+    },
+    {
+      label: 'Linha',
+      field: 'lines',
+      render: (row: any) => row.lines?.line_code || row.line_id,
+    },
     { label: 'Status', field: 'status' },
     { label: 'Data de Coleta', field: 'collected_at' },
   ];

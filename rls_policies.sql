@@ -70,4 +70,20 @@ ON lims.analysis FOR ALL TO authenticated
 USING (lims.get_user_role(auth.uid()) = 'admin')
 WITH CHECK (lims.get_user_role(auth.uid()) = 'admin');
 
+-- Tabela: nc
+CREATE POLICY "Allow qa_supervisor and admin to manage nc"
+ON lims.nc FOR ALL TO authenticated
+USING (lims.get_user_role(auth.uid()) IN ('admin', 'qa_supervisor'))
+WITH CHECK (lims.get_user_role(auth.uid()) IN ('admin', 'qa_supervisor'));
+
+CREATE POLICY "Allow lab_tech to view related nc"
+ON lims.nc FOR SELECT TO authenticated
+USING (lims.get_user_role(auth.uid()) = 'lab_tech' AND sample_id IN (SELECT id FROM lims.samples WHERE created_by = auth.uid()));
+
+-- Tabela: haccp_plan
+CREATE POLICY "Allow qa_supervisor and admin to manage haccp_plan"
+ON lims.haccp_plan FOR ALL TO authenticated
+USING (lims.get_user_role(auth.uid()) IN ('admin', 'qa_supervisor'))
+WITH CHECK (lims.get_user_role(auth.uid()) IN ('admin', 'qa_supervisor'));
+
 -- Fim do script
